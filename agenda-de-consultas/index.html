@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agenda de Consultas | Agendamento Online</title>
+  <meta name="description" content="MVP de agenda de consultas com catálogo de profissionais, horários disponíveis e confirmação de agendamento." />
+  <meta property="og:title" content="Agenda de Consultas | Agendamento Online" />
+  <meta property="og:description" content="MVP de agenda de consultas com catálogo de profissionais, horários disponíveis e confirmação de agendamento." />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              900: '#134e4a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .fade-in {
+      animation: fadeIn 0.35s ease-out forwards;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col text-slate-800 antialiased selection:bg-teal-100 selection:text-teal-900">
+
+  <!-- Top Navigation Bar -->
+  <header id="app-header" class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center text-white shadow-sm shadow-teal-600/30">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <span class="text-lg font-bold tracking-tight text-slate-900">MedAgenda</span>
+          <span class="hidden sm:inline-block ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200/60">MVP</span>
+        </div>
+      </div>
+      <div class="text-xs sm:text-sm text-slate-500 font-medium flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>Atendimento Online Disponível</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+
+    <!-- Hero / Headline Section -->
+    <section class="mb-8 sm:mb-12 text-center max-w-2xl mx-auto">
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
+        Agende sua consulta em minutos
+      </h1>
+      <p class="mt-2 text-sm sm:text-base text-slate-600 leading-relaxed">
+        Escolha o especialista ideal, selecione o horário mais conveniente e receba a confirmação imediata.
+      </p>
+    </section>
+
+    <!-- 1. Estado de Carregamento Inicial (1 segundo) -->
+    <div id="loading-state" class="py-16 sm:py-24 flex flex-col items-center justify-center text-center">
+      <div class="relative w-14 h-14">
+        <div class="w-14 h-14 rounded-full border-4 border-teal-100 border-t-teal-600 animate-spin"></div>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+      <p class="mt-4 text-base font-semibold text-slate-700 tracking-tight">Buscando profissionais...</p>
+      <p class="mt-1 text-xs sm:text-sm text-slate-400">Verificando agendas médicas em tempo real</p>
+    </div>
+
+    <!-- Conteúdo Principal (Oculto durante o loading inicial) -->
+    <div id="app-content" class="hidden space-y-10">
+
+      <!-- Catálogo de Profissionais -->
+      <section id="catalog-section" aria-labelledby="catalog-title">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 id="catalog-title" class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+              Especialistas Disponíveis
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-500">
+              Selecione um profissional para conferir os horários abertos hoje
+            </p>
+          </div>
+          <span id="doctors-count-badge" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-200 text-slate-700">
+            3 profissionais
+          </span>
+        </div>
+
+        <!-- Grid de Cards dos Profissionais -->
+        <div id="doctors-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Cards injetados dinamicamente via JS -->
+        </div>
+      </section>
+
+      <!-- Seção de Seleção de Horários e Formulário de Agendamento -->
+      <section id="booking-section" class="hidden fade-in scroll-mt-24">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          
+          <!-- Banner do Profissional Selecionado -->
+          <div class="bg-gradient-to-r from-teal-700 to-teal-800 px-6 py-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <img id="selected-doc-avatar" src="" alt="" class="w-14 h-14 rounded-full object-cover ring-2 ring-white/30" />
+              <div>
+                <span class="inline-block text-[11px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-sm bg-white/20 text-teal-50 mb-1">
+                  Profissional Selecionado
+                </span>
+                <h3 id="selected-doc-name" class="text-lg font-bold text-white"></h3>
+                <p id="selected-doc-specialty" class="text-xs sm:text-sm text-teal-100"></p>
+              </div>
+            </div>
+            <button 
+              id="btn-cancel-selection" 
+              type="button"
+              class="self-start sm:self-center text-xs font-medium text-teal-100 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Trocar profissional
+            </button>
+          </div>
+
+          <div class="p-6 sm:p-8">
+            
+            <!-- 1. Etapa de Escolha do Horário -->
+            <div class="mb-8">
+              <label class="block text-sm font-semibold text-slate-800 mb-2">
+                1. Escolha o horário da consulta:
+              </label>
+              <p class="text-xs text-slate-500 mb-3">
+                Clique sobre o horário que melhor se adapta à sua rotina
+              </p>
+              <div id="times-container" class="flex flex-wrap gap-2.5">
+                <!-- Horários injetados aqui -->
+              </div>
+            </div>
+
+            <!-- Divisor decorativo -->
+            <hr class="border-slate-100 my-6" />
+
+            <!-- 2. Formulário de Dados do Paciente -->
+            <div id="form-container" class="hidden fade-in">
+              <div class="mb-6">
+                <span class="text-xs font-bold uppercase tracking-wider text-teal-600 bg-teal-50 px-2 py-0.5 rounded">
+                  Etapa 2 de 2
+                </span>
+                <h4 class="text-base font-bold text-slate-900 mt-1">
+                  Dados do Paciente
+                </h4>
+                <p class="text-xs text-slate-500">
+                  Preencha suas informações para garantir sua vaga às <strong id="selected-time-badge" class="text-teal-700 font-semibold"></strong>.
+                </p>
+              </div>
+
+              <!-- Mensagem de Erro (Alerta Vermelho) -->
+              <div id="form-error-alert" class="hidden mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-3 fade-in" role="alert">
+                <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="flex-1">
+                  <p class="font-semibold text-red-800" id="form-error-title">Atenção aos dados informados</p>
+                  <p class="text-xs sm:text-sm text-red-700 mt-0.5" id="form-error-message"></p>
+                </div>
+              </div>
+
+              <form id="booking-form" novalidate class="space-y-4 max-w-xl">
+                <!-- Nome Completo -->
+                <div>
+                  <label for="patient-name" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Nome Completo <span class="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    id="patient-name" 
+                    name="patient-name"
+                    placeholder="Ex: Ana Clara Souza" 
+                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 bg-white placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                  />
+                  <p id="error-patient-name" class="hidden text-xs text-red-600 mt-1 font-medium"></p>
+                </div>
+
+                <!-- E-mail -->
+                <div>
+                  <label for="patient-email" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    E-mail <span class="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="email" 
+                    id="patient-email" 
+                    name="patient-email"
+                    placeholder="exemplo@dominio.com" 
+                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 bg-white placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                  />
+                  <p id="error-patient-email" class="hidden text-xs text-red-600 mt-1 font-medium"></p>
+                </div>
+
+                <!-- Telefone -->
+                <div>
+                  <label for="patient-phone" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Telefone / WhatsApp <span class="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="tel" 
+                    id="patient-phone" 
+                    name="patient-phone"
+                    placeholder="(11) 98765-4321" 
+                    maxlength="15"
+                    class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 bg-white placeholder-slate-400 text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"
+                  />
+                  <p id="error-patient-phone" class="hidden text-xs text-red-600 mt-1 font-medium"></p>
+                </div>
+
+                <!-- Botão de Confirmação com Estado de Loading de 2 segundos -->
+                <div class="pt-2">
+                  <button 
+                    type="submit" 
+                    id="btn-submit-booking"
+                    class="w-full sm:w-auto min-w-[220px] px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-semibold text-sm shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    <!-- Spinner (oculto por padrão) -->
+                    <svg id="submit-spinner" class="hidden w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span id="submit-button-text">Confirmar Agendamento</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- 3. Mensagem de Sucesso Clara (Exibida após 2s de loading) -->
+            <div id="success-container" class="hidden fade-in text-center py-6 max-w-lg mx-auto">
+              <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-4 ring-8 ring-emerald-50">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              <h4 class="text-xl font-bold text-slate-900 tracking-tight">Agendamento Confirmado com Sucesso!</h4>
+              <p class="text-sm text-slate-600 mt-1">
+                Os detalhes da sua consulta foram registrados em nosso sistema.
+              </p>
+
+              <!-- Resumo do Comprovante -->
+              <div class="mt-6 bg-slate-50 border border-slate-200 rounded-xl p-5 text-left space-y-2.5 text-xs sm:text-sm">
+                <div class="flex justify-between pb-2 border-b border-slate-200">
+                  <span class="text-slate-500">Paciente:</span>
+                  <span id="summary-patient-name" class="font-semibold text-slate-900"></span>
+                </div>
+                <div class="flex justify-between pb-2 border-b border-slate-200">
+                  <span class="text-slate-500">Profissional:</span>
+                  <span id="summary-doctor-name" class="font-semibold text-slate-900"></span>
+                </div>
+                <div class="flex justify-between pb-2 border-b border-slate-200">
+                  <span class="text-slate-500">Especialidade:</span>
+                  <span id="summary-specialty" class="font-medium text-slate-700"></span>
+                </div>
+                <div class="flex justify-between pb-2 border-b border-slate-200">
+                  <span class="text-slate-500">Horário:</span>
+                  <span id="summary-time" class="font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded"></span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-500">E-mail de confirmação:</span>
+                  <span id="summary-email" class="font-medium text-slate-700"></span>
+                </div>
+              </div>
+
+              <div class="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
+                <button 
+                  id="btn-new-appointment" 
+                  type="button"
+                  class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold transition-all shadow-xs cursor-pointer"
+                >
+                  Fazer Novo Agendamento
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-6xl mx-auto px-4">
+      <p>&copy; 2026 MedAgenda — Sistema de Gestão de Consultas. Design moderno, acessível e responsivo.</p>
+    </div>
+  </footer>
+
+  <!-- Lógica da Aplicação em JavaScript Puro -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // 1. Dados Mockados: Array com 3 profissionais
+      const professionals = [
+        {
+          id: 1,
+          name: "Dra. Camila Santos",
+          specialty: "Cardiologia Clínica",
+          bio: "Especialista em prevenção cardiovascular e check-up com mais de 10 anos de experiência.",
+          avatar: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&q=80",
+          availableSlots: ["09:00", "11:30", "14:00"]
+        },
+        {
+          id: 2,
+          name: "Dr. Rodrigo Lima",
+          specialty: "Ortopedia e Traumatologia",
+          bio: "Foco em medicina esportiva, dores articulares e reabilitação funcional musculoesquelética.",
+          avatar: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80",
+          availableSlots: ["10:00", "13:30", "16:00"]
+        },
+        {
+          id: 3,
+          name: "Dra. Mariana Ferreira",
+          specialty: "Dermatologia Avançada",
+          bio: "Diagnóstico precoce, cuidados clínicos de pele e tratamentos com embasamento científico.",
+          avatar: "https://images.unsplash.com/photo-1594824813589-983617be4219?auto=format&fit=crop&w=400&q=80",
+          availableSlots: ["08:30", "15:00", "17:30"]
+        }
+      ];
+
+      // Estado interno da aplicação
+      let selectedDoctor = null;
+      let selectedTime = null;
+
+      // Elementos do DOM
+      const loadingState = document.getElementById('loading-state');
+      const appContent = document.getElementById('app-content');
+      const doctorsGrid = document.getElementById('doctors-grid');
+      
+      const bookingSection = document.getElementById('booking-section');
+      const selectedDocAvatar = document.getElementById('selected-doc-avatar');
+      const selectedDocName = document.getElementById('selected-doc-name');
+      const selectedDocSpecialty = document.getElementById('selected-doc-specialty');
+      const btnCancelSelection = document.getElementById('btn-cancel-selection');
+      
+      const timesContainer = document.getElementById('times-container');
+      const formContainer = document.getElementById('form-container');
+      const selectedTimeBadge = document.getElementById('selected-time-badge');
+      
+      const bookingForm = document.getElementById('booking-form');
+      const patientNameInput = document.getElementById('patient-name');
+      const patientEmailInput = document.getElementById('patient-email');
+      const patientPhoneInput = document.getElementById('patient-phone');
+      
+      const errorPatientName = document.getElementById('error-patient-name');
+      const errorPatientEmail = document.getElementById('error-patient-email');
+      const errorPatientPhone = document.getElementById('error-patient-phone');
+      
+      const formErrorAlert = document.getElementById('form-error-alert');
+      const formErrorMessage = document.getElementById('form-error-message');
+      
+      const btnSubmitBooking = document.getElementById('btn-submit-booking');
+      const submitSpinner = document.getElementById('submit-spinner');
+      const submitButtonText = document.getElementById('submit-button-text');
+      
+      const successContainer = document.getElementById('success-container');
+      const summaryPatientName = document.getElementById('summary-patient-name');
+      const summaryDoctorName = document.getElementById('summary-doctor-name');
+      const summarySpecialty = document.getElementById('summary-specialty');
+      const summaryTime = document.getElementById('summary-time');
+      const summaryEmail = document.getElementById('summary-email');
+      const btnNewAppointment = document.getElementById('btn-new-appointment');
+
+      // 2. Estado de Carregamento Inicial: Simula 1 segundo
+      setTimeout(() => {
+        loadingState.classList.add('hidden');
+        appContent.classList.remove('hidden');
+        appContent.classList.add('fade-in');
+        renderDoctors();
+      }, 1000);
+
+      // 3. Renderiza o Catálogo de Profissionais
+      function renderDoctors() {
+        doctorsGrid.innerHTML = '';
+        professionals.forEach(doc => {
+          const card = document.createElement('article');
+          card.id = `doctor-card-${doc.id}`;
+          card.className = "bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between";
+          
+          card.innerHTML = `
+            <div class="p-6">
+              <div class="flex items-start gap-4 mb-4">
+                <img 
+                  src="${doc.avatar}" 
+                  alt="${doc.name}" 
+                  loading="lazy"
+                  class="w-16 h-16 rounded-full object-cover ring-2 ring-slate-100 shrink-0" 
+                />
+                <div>
+                  <span class="inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200/50 mb-1">
+                    ${doc.specialty}
+                  </span>
+                  <h3 class="text-base font-bold text-slate-900 leading-snug">${doc.name}</h3>
+                </div>
+              </div>
+              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
+                ${doc.bio}
+              </p>
+              <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                <svg class="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span><strong>${doc.availableSlots.length}</strong> horários vagos hoje</span>
+              </div>
+            </div>
+            
+            <div class="px-6 pb-6 pt-2 border-t border-slate-100 bg-slate-50/50">
+              <button 
+                type="button" 
+                id="btn-view-slots-${doc.id}" 
+                data-id="${doc.id}"
+                class="btn-view-slots w-full py-2.5 px-4 rounded-xl bg-white hover:bg-teal-600 text-teal-700 hover:text-white border border-teal-600/30 hover:border-teal-600 font-semibold text-sm transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Ver Horários</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          `;
+          
+          doctorsGrid.appendChild(card);
+        });
+
+        // Event listener para os botões "Ver Horários"
+        document.querySelectorAll('.btn-view-slots').forEach(button => {
+          button.addEventListener('click', (e) => {
+            const docId = parseInt(e.currentTarget.getAttribute('data-id'), 10);
+            selectDoctor(docId);
+          });
+        });
+      }
+
+      // 4. Seleção de Profissional
+      function selectDoctor(docId) {
+        selectedDoctor = professionals.find(p => p.id === docId);
+        selectedTime = null;
+        
+        if (!selectedDoctor) return;
+
+        // Atualiza cabeçalho do painel
+        selectedDocAvatar.src = selectedDoctor.avatar;
+        selectedDocAvatar.alt = selectedDoctor.name;
+        selectedDocName.textContent = selectedDoctor.name;
+        selectedDocSpecialty.textContent = selectedDoctor.specialty;
+
+        // Renderiza horários disponíveis
+        renderTimeSlots();
+
+        // Oculta formulário até que um horário seja clicado
+        formContainer.classList.add('hidden');
+        successContainer.classList.add('hidden');
+        clearErrors();
+
+        // Exibe a seção de agendamento e rola suavemente até ela
+        bookingSection.classList.remove('hidden');
+        bookingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Renderiza as opções de horários
+      function renderTimeSlots() {
+        timesContainer.innerHTML = '';
+        selectedDoctor.availableSlots.forEach(time => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.id = `slot-${time.replace(':', '')}`;
+          const isSelected = selectedTime === time;
+          
+          btn.className = isSelected 
+            ? "px-4 py-2 rounded-xl text-sm font-bold bg-teal-600 text-white shadow-xs ring-2 ring-teal-600 ring-offset-2 transition-all cursor-pointer"
+            : "px-4 py-2 rounded-xl text-sm font-semibold bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-700 border border-slate-200 hover:border-teal-300 transition-all cursor-pointer";
+          
+          btn.innerHTML = `
+            <span class="inline-flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 ${isSelected ? 'text-teal-200' : 'text-slate-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              ${time}
+            </span>
+          `;
+
+          btn.addEventListener('click', () => {
+            selectTime(time);
+          });
+
+          timesContainer.appendChild(btn);
+        });
+      }
+
+      // Seleção de Horário
+      function selectTime(time) {
+        selectedTime = time;
+        renderTimeSlots(); // Atualiza botões ativos
+
+        // Exibe o formulário de agendamento com o horário destacado
+        selectedTimeBadge.textContent = `${time} hoje`;
+        formContainer.classList.remove('hidden');
+        clearErrors();
+
+        // Rola até o formulário
+        formContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      // Botão para cancelar seleção / escolher outro profissional
+      btnCancelSelection.addEventListener('click', () => {
+        bookingSection.classList.add('hidden');
+        selectedDoctor = null;
+        selectedTime = null;
+        document.getElementById('catalog-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      // Máscara amigável para telefone
+      patientPhoneInput.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '');
+        if (val.length > 11) val = val.substring(0, 11);
+        
+        if (val.length > 10) {
+          e.target.value = val.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+        } else if (val.length > 5) {
+          e.target.value = val.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+        } else if (val.length > 2) {
+          e.target.value = val.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
+        } else {
+          e.target.value = val;
+        }
+      });
+
+      // Limpeza de erros visuais
+      function clearErrors() {
+        formErrorAlert.classList.add('hidden');
+        formErrorMessage.textContent = '';
+
+        [patientNameInput, patientEmailInput, patientPhoneInput].forEach(input => {
+          input.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+          input.classList.add('border-slate-300', 'focus:ring-teal-500', 'focus:border-teal-500');
+        });
+
+        errorPatientName.classList.add('hidden');
+        errorPatientEmail.classList.add('hidden');
+        errorPatientPhone.classList.add('hidden');
+      }
+
+      function setError(input, errorElement, message) {
+        input.classList.remove('border-slate-300', 'focus:ring-teal-500', 'focus:border-teal-500');
+        input.classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+        errorElement.textContent = message;
+        errorElement.classList.remove('hidden');
+      }
+
+      // Validação de E-mail com formato válido
+      function isValidEmail(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email);
+      }
+
+      // 5. Validação de Formulário e Estados
+      bookingForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        const name = patientNameInput.value.trim();
+        const email = patientEmailInput.value.trim();
+        const phone = patientPhoneInput.value.trim();
+
+        const errors = [];
+
+        // Validação de Nome
+        if (!name) {
+          setError(patientNameInput, errorPatientName, 'O nome completo é obrigatório.');
+          errors.push('Informe seu nome completo.');
+        } else if (name.split(' ').filter(part => part.length > 0).length < 2) {
+          setError(patientNameInput, errorPatientName, 'Por favor, digite seu nome e sobrenome.');
+          errors.push('Digite nome e sobrenome.');
+        }
+
+        // Validação de E-mail
+        if (!email) {
+          setError(patientEmailInput, errorPatientEmail, 'O e-mail é obrigatório.');
+          errors.push('Informe um endereço de e-mail.');
+        } else if (!isValidEmail(email)) {
+          setError(patientEmailInput, errorPatientEmail, 'Digite um endereço de e-mail válido (ex: seu@email.com).');
+          errors.push('O e-mail informado não possui um formato válido.');
+        }
+
+        // Validação de Telefone
+        const rawPhone = phone.replace(/\D/g, '');
+        if (!phone) {
+          setError(patientPhoneInput, errorPatientPhone, 'O telefone é obrigatório.');
+          errors.push('Informe seu telefone para contato.');
+        } else if (rawPhone.length < 10) {
+          setError(patientPhoneInput, errorPatientPhone, 'Informe um número com DDD válido (pelo menos 10 dígitos).');
+          errors.push('Telefone inválido ou incompleto.');
+        }
+
+        // Se houver erro, exibe mensagem vermelha na tela
+        if (errors.length > 0) {
+          formErrorMessage.textContent = errors[0];
+          formErrorAlert.classList.remove('hidden');
+          formErrorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          return;
+        }
+
+        // Simulação de Carregamento de 2 segundos no botão
+        btnSubmitBooking.disabled = true;
+        submitSpinner.classList.remove('hidden');
+        submitButtonText.textContent = 'Confirmando Agendamento...';
+
+        setTimeout(() => {
+          // Oculta o formulário e exibe tela de Sucesso clara
+          formContainer.classList.add('hidden');
+          
+          // Preenche os dados do resumo de sucesso
+          summaryPatientName.textContent = name;
+          summaryDoctorName.textContent = selectedDoctor.name;
+          summarySpecialty.textContent = selectedDoctor.specialty;
+          summaryTime.textContent = selectedTime;
+          summaryEmail.textContent = email;
+
+          // Restaura estado do botão
+          btnSubmitBooking.disabled = false;
+          submitSpinner.classList.add('hidden');
+          submitButtonText.textContent = 'Confirmar Agendamento';
+
+          // Exibe sucesso
+          successContainer.classList.remove('hidden');
+          successContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 2000);
+      });
+
+      // Reiniciar processo para novo agendamento
+      btnNewAppointment.addEventListener('click', () => {
+        bookingForm.reset();
+        clearErrors();
+        selectedDoctor = null;
+        selectedTime = null;
+        formContainer.classList.add('hidden');
+        successContainer.classList.add('hidden');
+        bookingSection.classList.add('hidden');
+        
+        document.getElementById('catalog-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+    });
+  </script>
+</body>
+</html>

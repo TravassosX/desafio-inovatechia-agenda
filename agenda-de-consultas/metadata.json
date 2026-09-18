@@ -1,0 +1,6 @@
+{
+  "name": "Agenda de Consultas",
+  "description": "MVP de agenda de consultas com catálogo de profissionais, horários disponíveis e confirmação de agendamento.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
